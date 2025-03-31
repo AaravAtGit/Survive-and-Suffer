@@ -1,0 +1,57 @@
+{% extends "main.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto text-center">
+    <div class="py-12 fade-in">
+        <h1 class="text-6xl font-bold blood-drip mb-4">Survive and Suffer</h1>
+        <p class="text-xl text-gray-400 mb-10">Death is coming. Can you escape it?</p>
+        
+        <div class="bg-gray-800 rounded-lg p-8 shadow-lg mb-12 text-left fade-in" style="animation-delay: 0.3s">
+            <h2 class="text-2xl font-bold mb-4">How to Play</h2>
+            <ol class="list-decimal list-inside space-y-3 text-gray-300">
+                <li class="fade-in" style="animation-delay: 0.5s">
+                    <span class="font-semibold text-white">Face Death</span>: You'll be presented with a deadly scenario.
+                </li>
+                <li class="fade-in" style="animation-delay: 0.7s">
+                    <span class="font-semibold text-white">Think Fast</span>: Devise your escape plan to cheat death.
+                </li>
+                <li class="fade-in" style="animation-delay: 0.9s">
+                    <span class="font-semibold text-white">Be Judged</span>: Our AI will determine if your solution would actually save you.
+                </li>
+                <li class="fade-in" style="animation-delay: 1.1s">
+                    <span class="font-semibold text-white">Live or Die</span>: Survive to continue your journey, or perish trying.
+                </li>
+            </ol>
+        </div>
+        
+        <a href="/play" class="inline-block bg-red-600 hover:bg-red-700 transition-colors px-10 py-4 rounded-lg text-xl font-bold shadow-lg pulse">
+            <i class="fas fa-skull mr-3"></i>
+            Begin Your Suffering
+        </a>
+        
+        <div class="mt-8 text-gray-500 fade-in" style="animation-delay: 1.5s">
+            <p>Do you have what it takes to survive?</p>
+        </div>
+    </div>
+    
+    <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+        <div class="bg-gray-800 rounded-lg p-6 shadow-lg transform transition-transform hover:scale-105">
+            <i class="fas fa-brain text-red-500 text-3xl mb-4"></i>
+            <h3 class="text-xl font-bold mb-2">Test Your Wits</h3>
+            <p class="text-gray-400">Creative thinking and problem-solving are your only weapons against the grim reaper.</p>
+        </div>
+        
+        <div class="bg-gray-800 rounded-lg p-6 shadow-lg transform transition-transform hover:scale-105">
+            <i class="fas fa-robot text-red-500 text-3xl mb-4"></i>
+            <h3 class="text-xl font-bold mb-2">AI Judgment</h3>
+            <p class="text-gray-400">Our merciless AI analyzes your escape plan to determine if you've cheated death.</p>
+        </div>
+        
+        <div class="bg-gray-800 rounded-lg p-6 shadow-lg transform transition-transform hover:scale-105">
+            <i class="fas fa-trophy text-red-500 text-3xl mb-4"></i>
+            <h3 class="text-xl font-bold mb-2">Climb the Ranks</h3>
+            <p class="text-gray-400">Compare your survival skills with others on our leaderboard of death-defiers.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

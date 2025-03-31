@@ -1,0 +1,373 @@
+{% extends "main.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Game header -->
+    <div class="text-center mb-8 fade-in">
+        <h1 class="text-5xl font-bold blood-drip mb-2">Survive and Suffer</h1>
+        <p class="text-xl text-gray-400">Can you escape death?</p>
+    </div>
+    
+    <!-- Player info section -->
+    <div class="bg-gray-800 rounded-lg p-6 mb-8 shadow-lg fade-in" style="animation-delay: 0.3s">
+        <div class="flex justify-between items-center">
+            <div>
+                <h2 class="text-2xl font-bold" id="player-name">Player: <span id="player-name-display">Unknown</span></h2>
+                <div class="mt-2 flex items-center">
+                    <i class="fas fa-skull text-red-500 mr-2"></i>
+                    <span>Score: <span id="player-score" class="font-bold">0</span></span>
+                </div>
+            </div>
+            <div>
+                <button id="leaderboard-btn" class="bg-indigo-600 hover:bg-indigo-700 transition-colors px-4 py-2 rounded-lg shadow">
+                    <i class="fas fa-trophy mr-2"></i>Leaderboard
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game stage section -->
+    <div class="game-container">
+        <!-- Initial name prompt -->
+        <div id="name-prompt" class="bg-gray-800 rounded-lg p-8 shadow-lg fade-in" style="animation-delay: 0.6s">
+            <h2 class="text-2xl font-bold mb-4">Enter Your Name, Legend</h2>
+            <div class="flex">
+                <input type="text" id="player-name-input" class="flex-grow bg-gray-700 border border-gray-600 rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Your name">
+                <button id="start-game-btn" class="bg-red-600 hover:bg-red-700 transition-colors px-6 py-2 rounded-r-lg pulse">
+                    Start Game
+                </button>
+            </div>
+        </div>
+        
+        <!-- Scenario section (initially hidden) -->
+        <div id="scenario-section" class="hidden bg-gray-800 rounded-lg p-8 shadow-lg">
+            <div class="flex items-center mb-4">
+                <i class="fas fa-skull-crossbones text-red-500 text-2xl mr-3"></i>
+                <h2 class="text-2xl font-bold">Death Scenario</h2>
+            </div>
+            
+            <div id="scenario-container" class="my-8 p-6 bg-gray-900 rounded-lg border border-red-800 shadow-inner">
+                <p id="scenario-text" class="text-xl">Loading scenario...</p>
+            </div>
+            
+            <div class="mt-6">
+                <label for="user-response" class="block text-lg font-medium mb-2">How will you survive?</label>
+                <textarea id="user-response" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Write your escape plan..."></textarea>
+                
+                <div class="mt-4 flex justify-end">
+                    <button id="submit-response-btn" class="bg-red-600 hover:bg-red-700 transition-colors px-8 py-3 rounded-lg font-bold pulse">
+                        <i class="fas fa-dice-d20 mr-2"></i>Test Your Fate
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Result section (initially hidden) -->
+        <div id="result-section" class="hidden bg-gray-800 rounded-lg p-8 shadow-lg">
+            <div id="result-header" class="flex items-center mb-4">
+                <!-- Icons will be inserted dynamically -->
+            </div>
+            
+            <div id="result-container" class="my-6 p-6 bg-gray-900 rounded-lg border shadow-inner">
+                <p id="result-text" class="text-xl">Awaiting judgment...</p>
+            </div>
+            
+            <div class="mt-8 flex justify-between">
+                <button id="play-again-btn" class="bg-indigo-600 hover:bg-indigo-700 transition-colors px-6 py-3 rounded-lg">
+                    <i class="fas fa-redo mr-2"></i>Next Challenge
+                </button>
+                
+                <button id="game-over-btn" class="hidden bg-gray-600 hover:bg-gray-700 transition-colors px-6 py-3 rounded-lg">
+                    <i class="fas fa-home mr-2"></i>Return Home
+                </button>
+            </div>
+        </div>
+        
+        <!-- Leaderboard modal (initially hidden) -->
+        <div id="leaderboard-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+            <div class="bg-gray-800 rounded-lg p-8 max-w-lg w-full mx-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">
+                        <i class="fas fa-trophy text-yellow-500 mr-2"></i>Leaderboard
+                    </h2>
+                    <button id="close-leaderboard-btn" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div id="leaderboard-content" class="max-h-96 overflow-y-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-700">
+                                <th class="text-left py-2">Rank</th>
+                                <th class="text-left py-2">Player</th>
+                                <th class="text-right py-2">Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-table">
+                            <!-- Leaderboard entries will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Game state
+    let playerName = '';
+    let playerScore = 0;
+    let currentScenario = '';
+    let players = {};
+    
+    // DOM elements
+    const namePrompt = document.getElementById('name-prompt');
+    const scenarioSection = document.getElementById('scenario-section');
+    const resultSection = document.getElementById('result-section');
+    const playerNameInput = document.getElementById('player-name-input');
+    const playerNameDisplay = document.getElementById('player-name-display');
+    const playerScoreDisplay = document.getElementById('player-score');
+    const scenarioText = document.getElementById('scenario-text');
+    const userResponse = document.getElementById('user-response');
+    const resultText = document.getElementById('result-text');
+    const resultHeader = document.getElementById('result-header');
+    const resultContainer = document.getElementById('result-container');
+    const leaderboardModal = document.getElementById('leaderboard-modal');
+    const leaderboardTable = document.getElementById('leaderboard-table');
+    
+    // Buttons
+    const startGameBtn = document.getElementById('start-game-btn');
+    const submitResponseBtn = document.getElementById('submit-response-btn');
+    const playAgainBtn = document.getElementById('play-again-btn');
+    const gameOverBtn = document.getElementById('game-over-btn');
+    const leaderboardBtn = document.getElementById('leaderboard-btn');
+    const closeLeaderboardBtn = document.getElementById('close-leaderboard-btn');
+    
+    // Animation helpers
+    function animateElement(element, animationClass) {
+        element.classList.add(animationClass);
+        element.addEventListener('animationend', () => {
+            element.classList.remove(animationClass);
+        }, {once: true});
+    }
+    
+    function slideIn(element) {
+        element.style.opacity = '0';
+        element.style.transform = 'translateY(20px)';
+        element.style.display = 'block';
+        
+        setTimeout(() => {
+            element.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            element.style.opacity = '1';
+            element.style.transform = 'translateY(0)';
+        }, 10);
+    }
+    
+    function slideOut(element, callback) {
+        element.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        element.style.opacity = '0';
+        element.style.transform = 'translateY(-20px)';
+        
+        setTimeout(() => {
+            element.style.display = 'none';
+            if (callback) callback();
+        }, 500);
+    }
+    
+    // Game functions
+    function startGame() {
+        playerName = playerNameInput.value.trim();
+        if (!playerName) {
+            animateElement(playerNameInput, 'shake');
+            return;
+        }
+        
+        playerNameDisplay.textContent = playerName;
+        if (!players[playerName]) {
+            players[playerName] = 0;
+        }
+        playerScore = players[playerName];
+        playerScoreDisplay.textContent = playerScore;
+        
+        slideOut(namePrompt, () => {
+            getNewScenario();
+        });
+    }
+    
+    function getNewScenario() {
+        fetch('/scenario')
+            .then(response => response.text())
+            .then(scenario => {
+                currentScenario = scenario;
+                scenarioText.textContent = scenario;
+                slideIn(scenarioSection);
+                animateElement(scenarioSection, 'fade-in');
+            })
+            .catch(error => {
+                console.error('Error fetching scenario:', error);
+                scenarioText.textContent = 'Error loading scenario. Please try again.';
+            });
+    }
+    
+    function submitResponse() {
+        const response = userResponse.value.trim();
+        if (!response) {
+            animateElement(userResponse, 'shake');
+            return;
+        }
+        
+        submitResponseBtn.disabled = true;
+        submitResponseBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Judging...';
+        
+        // Death judgement animation
+        slideOut(scenarioSection, () => {
+            resultText.textContent = 'The AI is determining your fate...';
+            resultHeader.innerHTML = '<i class="fas fa-hourglass-half text-yellow-500 text-2xl mr-3"></i><h2 class="text-2xl font-bold">Awaiting Judgment</h2>';
+            resultContainer.className = 'my-6 p-6 bg-gray-900 rounded-lg border border-yellow-500 shadow-inner';
+            slideIn(resultSection);
+            
+            // Send to backend for judgment
+            fetch('/judge', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    player_name: playerName,
+                    scenario: currentScenario,
+                    user_response: response
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                setTimeout(() => {
+                    displayResult(data);
+                }, 1500); // Add dramatic pause
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultText.textContent = 'Something went wrong with the judgment. Please try again.';
+                submitResponseBtn.disabled = false;
+                submitResponseBtn.innerHTML = '<i class="fas fa-dice-d20 mr-2"></i>Test Your Fate';
+            });
+        });
+    }
+    
+    function displayResult(data) {
+        resultText.textContent = data.response;
+        
+        if (data.survived) {
+            // Success animation
+            resultHeader.innerHTML = '<i class="fas fa-check-circle text-green-500 text-2xl mr-3"></i><h2 class="text-2xl font-bold">You Survived!</h2>';
+            resultContainer.className = 'my-6 p-6 bg-gray-900 rounded-lg border border-green-500 shadow-inner';
+            playerScore++;
+            playerScoreDisplay.textContent = playerScore;
+            players[playerName] = playerScore;
+            
+            playAgainBtn.textContent = 'Continue Your Journey';
+            gameOverBtn.style.display = 'none';
+        } else {
+            // Death animation
+            resultHeader.innerHTML = '<i class="fas fa-skull-crossbones text-red-500 text-2xl mr-3"></i><h2 class="text-2xl font-bold">You Died!</h2>';
+            resultContainer.className = 'my-6 p-6 bg-gray-900 rounded-lg border border-red-700 shadow-inner';
+            
+            playAgainBtn.textContent = 'Try Again';
+            gameOverBtn.style.display = 'inline-flex';
+        }
+        
+        // Store in local storage
+        localStorage.setItem('surviveAndSufferPlayers', JSON.stringify(players));
+        
+        submitResponseBtn.disabled = false;
+        submitResponseBtn.innerHTML = '<i class="fas fa-dice-d20 mr-2"></i>Test Your Fate';
+    }
+    
+    function playAgain() {
+        slideOut(resultSection, () => {
+            userResponse.value = '';
+            getNewScenario();
+        });
+    }
+    
+    function showLeaderboard() {
+        // Sort players by score
+        const sortedPlayers = Object.entries(players)
+            .sort((a, b) => b[1] - a[1])
+            .map((entry, index) => ({
+                rank: index + 1,
+                name: entry[0],
+                score: entry[1]
+            }));
+        
+        // Populate leaderboard
+        leaderboardTable.innerHTML = '';
+        if (sortedPlayers.length === 0) {
+            leaderboardTable.innerHTML = '<tr><td colspan="3" class="py-4 text-center text-gray-500">No players yet</td></tr>';
+        } else {
+            sortedPlayers.forEach(player => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-700';
+                
+                const rankCell = document.createElement('td');
+                rankCell.className = 'py-3';
+                rankCell.textContent = player.rank;
+                
+                const nameCell = document.createElement('td');
+                nameCell.className = 'py-3';
+                nameCell.textContent = player.name;
+                
+                const scoreCell = document.createElement('td');
+                scoreCell.className = 'py-3 text-right';
+                scoreCell.textContent = player.score;
+                
+                row.appendChild(rankCell);
+                row.appendChild(nameCell);
+                row.appendChild(scoreCell);
+                leaderboardTable.appendChild(row);
+            });
+        }
+        
+        leaderboardModal.style.display = 'flex';
+        leaderboardModal.style.opacity = '0';
+        setTimeout(() => {
+            leaderboardModal.style.transition = 'opacity 0.3s ease';
+            leaderboardModal.style.opacity = '1';
+        }, 10);
+    }
+    
+    function closeLeaderboard() {
+        leaderboardModal.style.opacity = '0';
+        setTimeout(() => {
+            leaderboardModal.style.display = 'none';
+        }, 300);
+    }
+    
+    // Initialization
+    document.addEventListener('DOMContentLoaded', () => {
+        // Load saved players from localStorage
+        const savedPlayers = localStorage.getItem('surviveAndSufferPlayers');
+        if (savedPlayers) {
+            players = JSON.parse(savedPlayers);
+        }
+        
+        // Event listeners
+        startGameBtn.addEventListener('click', startGame);
+        playerNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') startGame();
+        });
+        submitResponseBtn.addEventListener('click', submitResponse);
+        playAgainBtn.addEventListener('click', playAgain);
+        gameOverBtn.addEventListener('click', () => {
+            slideOut(resultSection, () => {
+                playerNameInput.value = '';
+                slideIn(namePrompt);
+            });
+        });
+        leaderboardBtn.addEventListener('click', showLeaderboard);
+        closeLeaderboardBtn.addEventListener('click', closeLeaderboard);
+    });
+</script>
+{% endblock %}
