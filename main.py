@@ -20,7 +20,7 @@ def judgement(player_name, scenario, user_response):
     try:
         response = openai.chat.completions.create(
             messages=[
-                {"role": "system", "content": 'You are a judgement AI. You will be presented with a death scenario and the users answer to escape it. Judge and determine the outcome in the third person. respond in json format with values response and survived. for eg {"response": "the actual response", "survived": true}. Let the user be creative but be harsh on the user and find other ways for them to die. for example if user responses with "I would teleport out of the situation" create a sinario like "the teleporter breaks and they get teleported elsewhere and dies."'},
+                {"role": "system", "content": 'You are a judgement AI. You will be presented with a death scenario and the users answer to escape it. Judge and determine the outcome in the third person. Let the user be creative and find other ways for them to die. for example if user responses with "I would teleport out of the situation" create a scenarios like "the teleporter breaks and they get teleported elsewhere and dies." Be a little easy of the player and be a little humorous too in response. Always respond with a JSON object with "response" and "survived" (boolean), example {"response": "the actual response string", "survived": boolean}.'},
                 {"role": "user", "content": f"Player: {player_name}\nScenario: {scenario}\nResponse: {user_response}"}
             ],
             model="meta-llama/Meta-Llama-3.1-405B-Instruct",
