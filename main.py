@@ -20,10 +20,10 @@ def judgement(player_name, scenario, user_response):
     try:
         response = openai.chat.completions.create(
             messages=[
-                {"role": "system", "content": 'You are a judgement AI. You will be presented with a death scenario and the users answer to escape it. Judge and determine the outcome in the third person. respond in json format with values response and survived. for eg {"response": "the actual response", "survived": true} '},
+                {"role": "system", "content": 'You are a judgement AI. You will be presented with a death scenario and the users answer to escape it. Judge and determine the outcome in the third person. respond in json format with values response and survived. for eg {"response": "the actual response", "survived": true}. Let the user be creative but be harsh on the user and find other ways for them to die. for example if user responses with "I would teleport out of the situation" create a sinario like "the teleporter breaks and they get teleported elsewhere and dies."'},
                 {"role": "user", "content": f"Player: {player_name}\nScenario: {scenario}\nResponse: {user_response}"}
             ],
-            model="meta-llama/Llama-3.3-70B-Instruct",
+            model="meta-llama/Meta-Llama-3.1-405B-Instruct",
         )
         print(response)
         return json.loads(response.choices[0].message.content)
@@ -122,6 +122,53 @@ def index():
 @app.route("/play", methods=["GET"])
 def play():
     return render_template("game.html")
+
+
+@app.route("/api/leaderboard", methods=["GET"])
+def get_leaderboard():
+    """API endpoint to get the global leaderboard."""
+    try:
+        # Load the leaderboard from a file
+        with open('leaderboard.json', 'r') as f:
+            leaderboard = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        leaderboard = {}
+    
+    return jsonify(leaderboard)
+
+@app.route("/api/leaderboard", methods=["POST"])
+def update_leaderboard():
+    """API endpoint to update the global leaderboard."""
+    data = request.get_json()
+    name = data.get("name")
+    score = data.get("score")
+    
+    if not name or not isinstance(score, int):
+        return jsonify({"error": "Invalid data"}), 400
+    
+    try:
+        # Load existing leaderboard
+        try:
+            with open('leaderboard.json', 'r') as f:
+                leaderboard = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            leaderboard = {}
+        
+        # Only update if this is a new high score for this player
+        if name not in leaderboard or score > leaderboard[name]:
+            leaderboard[name] = score
+            
+            # Save updated leaderboard
+            with open('leaderboard.json', 'w') as f:
+                json.dump(leaderboard, f)
+            
+            return jsonify({"success": True, "message": "Leaderboard updated"})
+        else:
+            return jsonify({"success": False, "message": "Not a high score"})
+            
+    except Exception as e:
+        print(f"Error updating leaderboard: {e}")
+        return jsonify({"error": "Server error"}), 500
 
 if __name__ == "__main__":
     app.run()

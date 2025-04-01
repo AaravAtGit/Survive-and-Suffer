@@ -69,7 +69,8 @@
             </div>
             
             <div id="result-container" class="my-6 p-6 bg-gray-900 rounded-lg border shadow-inner">
-                <p id="result-text" class="text-xl">Awaiting judgment...</p>
+                <p id="result-text" class="text-xl"></p>
+                <div id="typing-cursor" class="inline-block w-2 h-4 bg-white ml-1 animate-pulse"></div>
             </div>
             
             <div class="mt-8 flex justify-between">
@@ -88,7 +89,7 @@
             <div class="bg-gray-800 rounded-lg p-8 max-w-lg w-full mx-4">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold">
-                        <i class="fas fa-trophy text-yellow-500 mr-2"></i>Leaderboard
+                        <i class="fas fa-trophy text-yellow-500 mr-2"></i>Global Leaderboard
                     </h2>
                     <button id="close-leaderboard-btn" class="text-gray-400 hover:text-white">
                         <i class="fas fa-times text-xl"></i>
@@ -101,7 +102,7 @@
                             <tr class="border-b border-gray-700">
                                 <th class="text-left py-2">Rank</th>
                                 <th class="text-left py-2">Player</th>
-                                <th class="text-right py-2">Score</th>
+                                <th class="text-right py-2">High Score</th>
                             </tr>
                         </thead>
                         <tbody id="leaderboard-table">
@@ -121,7 +122,7 @@
     let playerName = '';
     let playerScore = 0;
     let currentScenario = '';
-    let players = {};
+    let globalLeaderboard = {};
     
     // DOM elements
     const namePrompt = document.getElementById('name-prompt');
@@ -133,6 +134,7 @@
     const scenarioText = document.getElementById('scenario-text');
     const userResponse = document.getElementById('user-response');
     const resultText = document.getElementById('result-text');
+    const typingCursor = document.getElementById('typing-cursor');
     const resultHeader = document.getElementById('result-header');
     const resultContainer = document.getElementById('result-container');
     const leaderboardModal = document.getElementById('leaderboard-modal');
@@ -177,6 +179,26 @@
         }, 500);
     }
     
+    // Typing animation
+    function typeText(text, element, speed = 250) {
+        return new Promise((resolve) => {
+            element.textContent = '';
+            typingCursor.style.display = 'inline-block';
+            
+            let i = 0;
+            const typing = setInterval(() => {
+                if (i < text.length) {
+                    element.textContent += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(typing);
+                    typingCursor.style.display = 'none';
+                    resolve();
+                }
+            }, speed);
+        });
+    }
+    
     // Game functions
     function startGame() {
         playerName = playerNameInput.value.trim();
@@ -186,10 +208,7 @@
         }
         
         playerNameDisplay.textContent = playerName;
-        if (!players[playerName]) {
-            players[playerName] = 0;
-        }
-        playerScore = players[playerName];
+        playerScore = 0;
         playerScoreDisplay.textContent = playerScore;
         
         slideOut(namePrompt, () => {
@@ -224,12 +243,13 @@
         
         // Death judgement animation
         slideOut(scenarioSection, () => {
-            resultText.textContent = 'The AI is determining your fate...';
+            resultText.textContent = '';
             resultHeader.innerHTML = '<i class="fas fa-hourglass-half text-yellow-500 text-2xl mr-3"></i><h2 class="text-2xl font-bold">Awaiting Judgment</h2>';
             resultContainer.className = 'my-6 p-6 bg-gray-900 rounded-lg border border-yellow-500 shadow-inner';
             slideIn(resultSection);
             
             // Send to backend for judgment
+            typeText('The AI is determining your fate...', resultText, 50);
             fetch('/judge', {
                 method: 'POST',
                 headers: {
@@ -243,29 +263,27 @@
             })
             .then(response => response.json())
             .then(data => {
-                setTimeout(() => {
-                    displayResult(data);
-                }, 1500); // Add dramatic pause
+                    setTimeout(async () => {
+                        await typeText(data.response, resultText, 30);
+                        finalizeResult(data);
+                    }, 500);
             })
             .catch(error => {
                 console.error('Error:', error);
-                resultText.textContent = 'Something went wrong with the judgment. Please try again.';
+                typeText('Something went wrong with the judgment. Please try again.', resultText);
                 submitResponseBtn.disabled = false;
                 submitResponseBtn.innerHTML = '<i class="fas fa-dice-d20 mr-2"></i>Test Your Fate';
             });
         });
     }
     
-    function displayResult(data) {
-        resultText.textContent = data.response;
-        
+    function finalizeResult(data) {
         if (data.survived) {
             // Success animation
             resultHeader.innerHTML = '<i class="fas fa-check-circle text-green-500 text-2xl mr-3"></i><h2 class="text-2xl font-bold">You Survived!</h2>';
             resultContainer.className = 'my-6 p-6 bg-gray-900 rounded-lg border border-green-500 shadow-inner';
             playerScore++;
             playerScoreDisplay.textContent = playerScore;
-            players[playerName] = playerScore;
             
             playAgainBtn.textContent = 'Continue Your Journey';
             gameOverBtn.style.display = 'none';
@@ -274,27 +292,56 @@
             resultHeader.innerHTML = '<i class="fas fa-skull-crossbones text-red-500 text-2xl mr-3"></i><h2 class="text-2xl font-bold">You Died!</h2>';
             resultContainer.className = 'my-6 p-6 bg-gray-900 rounded-lg border border-red-700 shadow-inner';
             
+            // Update leaderboard with high score
+            updateLeaderboard(playerName, playerScore);
+            
+            // Reset score on death
+            playerScore = 0;
+            
             playAgainBtn.textContent = 'Try Again';
             gameOverBtn.style.display = 'inline-flex';
         }
-        
-        // Store in local storage
-        localStorage.setItem('surviveAndSufferPlayers', JSON.stringify(players));
         
         submitResponseBtn.disabled = false;
         submitResponseBtn.innerHTML = '<i class="fas fa-dice-d20 mr-2"></i>Test Your Fate';
     }
     
+    function updateLeaderboard(name, score) {
+        // Only update if this is a new high score for this player
+        if (!globalLeaderboard[name] || score > globalLeaderboard[name]) {
+            globalLeaderboard[name] = score;
+            
+            // Save to localStorage for persistence
+            localStorage.setItem('globalLeaderboard', JSON.stringify(globalLeaderboard));
+            
+            // Attempt to send to server (this would be a real implementation)
+            // For now, we'll just use localStorage to simulate a global leaderboard
+            
+            // You'd implement a real server-side storage in a production environment
+            // fetch('/api/leaderboard', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({
+            //         name: name,
+            //         score: score
+            //     })
+            // });
+        }
+    }
+    
     function playAgain() {
         slideOut(resultSection, () => {
             userResponse.value = '';
+            playerScoreDisplay.textContent = playerScore;
             getNewScenario();
         });
     }
     
     function showLeaderboard() {
         // Sort players by score
-        const sortedPlayers = Object.entries(players)
+        const sortedPlayers = Object.entries(globalLeaderboard)
             .sort((a, b) => b[1] - a[1])
             .map((entry, index) => ({
                 rank: index + 1,
@@ -305,7 +352,7 @@
         // Populate leaderboard
         leaderboardTable.innerHTML = '';
         if (sortedPlayers.length === 0) {
-            leaderboardTable.innerHTML = '<tr><td colspan="3" class="py-4 text-center text-gray-500">No players yet</td></tr>';
+            leaderboardTable.innerHTML = '<tr><td colspan="3" class="py-4 text-center text-gray-500">No high scores yet</td></tr>';
         } else {
             sortedPlayers.forEach(player => {
                 const row = document.createElement('tr');
@@ -347,10 +394,10 @@
     
     // Initialization
     document.addEventListener('DOMContentLoaded', () => {
-        // Load saved players from localStorage
-        const savedPlayers = localStorage.getItem('surviveAndSufferPlayers');
-        if (savedPlayers) {
-            players = JSON.parse(savedPlayers);
+        // Load saved leaderboard from localStorage
+        const savedLeaderboard = localStorage.getItem('globalLeaderboard');
+        if (savedLeaderboard) {
+            globalLeaderboard = JSON.parse(savedLeaderboard);
         }
         
         // Event listeners
